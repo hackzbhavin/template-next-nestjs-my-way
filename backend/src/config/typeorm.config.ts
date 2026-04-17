@@ -1,27 +1,20 @@
-import { ConfigService } from '@nestjs/config';
+import 'dotenv/config';
 import { DataSourceOptions } from 'typeorm';
-import { User } from '../entities/user.entity.js';
-import { Product } from '../entities/product.entity.js';
-import { Order } from '../entities/order.entity.js';
-import { OrderItem } from '../entities/order-item.entity.js';
-import { getRedisConfig } from './redis.config.js';
+import { User } from '../entities/user.entity';
 
-export const getTypeOrmConfig = (
-  config?: ConfigService,
-): DataSourceOptions => ({
+// Add your entities here as the project grows
+const entities = [User];
+
+export const getTypeOrmConfig = (): DataSourceOptions => ({
   type: 'mysql',
-  host: config?.get('DB_HOST') ? process.env.DB_HOST : 'localhost',
-  port: config?.get<number>('DB_PORT') ? Number(process.env.DB_PORT) : 3306,
-  username: config?.get('DB_USER') ? process.env.DB_USER : 'root',
-  password: config?.get('DB_PASS') ? process.env.DB_PASS : '',
-  database: config?.get('DB_NAME') ? process.env.DB_NAME : 'appdb',
-  entities: [User, Product, Order, OrderItem],
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT) || 3306,
+  username: process.env.DB_USER ?? 'root',
+  password: process.env.DB_PASS ?? '',
+  database: process.env.DB_NAME ?? 'myapp',
+  entities,
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
   migrationsRun: false,
   logging: true,
-  cache: {
-    type: 'ioredis',
-    options: getRedisConfig(config),
-  },
 });

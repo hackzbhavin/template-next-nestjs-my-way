@@ -1,0 +1,311 @@
+{
+  "id": null,
+  "uid": "nestjs-app-overview",
+  "title": "App Overview",
+  "tags": ["nestjs", "bullmq", "redis"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "HTTP Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(http_request_duration_ms_count[1m])) by (method, route)",
+          "legendFormat": "{{method}} {{route}}"
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "title": "HTTP Latency — p95 / p99 (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[1m])) by (le, route))",
+          "legendFormat": "p95 {{route}}"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_ms_bucket[1m])) by (le, route))",
+          "legendFormat": "p99 {{route}}"
+        }
+      ]
+    },
+
+    {
+      "id": 3,
+      "title": "HTTP Error Rate (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "100 * sum(rate(http_request_duration_ms_count{status_code=~\"5..\"}[1m])) / sum(rate(http_request_duration_ms_count[1m]))",
+          "legendFormat": "5xx error rate"
+        }
+      ]
+    },
+
+    {
+      "id": 4,
+      "title": "Node.js Heap Used (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_heap_size_used_bytes / 1024 / 1024",
+          "legendFormat": "Heap Used"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_heap_size_total_bytes / 1024 / 1024",
+          "legendFormat": "Heap Total"
+        }
+      ]
+    },
+
+    {
+      "id": 5,
+      "title": "CPU Usage (seconds/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(process_cpu_seconds_total[1m])",
+          "legendFormat": "CPU"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "title": "Active Handles / Event Loop Lag",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_active_handles_total",
+          "legendFormat": "Active Handles"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "nodejs_active_requests_total",
+          "legendFormat": "Active Requests"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "title": "k6 — Virtual Users (VUs)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "purple" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "k6_vus",
+          "legendFormat": "VUs"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "k6_vus_max",
+          "legendFormat": "VUs Max"
+        }
+      ]
+    },
+
+    {
+      "id": 8,
+      "title": "k6 — Request Rate & Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(k6_http_req_duration_bucket[1m]))",
+          "legendFormat": "k6 p95"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, rate(k6_http_req_duration_bucket[1m]))",
+          "legendFormat": "k6 p99"
+        }
+      ]
+    },
+
+    {
+      "id": 9,
+      "title": "k6 — Checks Passed Rate",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 0.95 },
+              { "color": "green",  "value": 0.99 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(k6_checks_total{result=\"pass\"}[5m])) / sum(rate(k6_checks_total[5m]))",
+          "legendFormat": "Checks Passed"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "title": "k6 — HTTP Errors",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red",    "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(k6_http_req_failed_total[5m]))",
+          "legendFormat": "HTTP Failures/s"
+        }
+      ]
+    },
+
+    {
+      "id": 11,
+      "title": "Total Requests Served",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(http_request_duration_ms_count)",
+          "legendFormat": "Total Requests"
+        }
+      ]
+    },
+
+    {
+      "id": 12,
+      "title": "Process Uptime",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "process_uptime_seconds",
+          "legendFormat": "Uptime"
+        }
+      ]
+    }
+
+  ]
+}

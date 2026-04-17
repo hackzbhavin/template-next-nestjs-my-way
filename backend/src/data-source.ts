@@ -1,8 +1,6 @@
 import 'reflect-metadata';
-import { config } from 'dotenv';
+import 'dotenv/config';
 import { DataSource } from 'typeorm';
-import { getTypeOrmConfig } from './config/typeorm.config.js';
-
-config();
+import { getTypeOrmConfig } from './config/typeorm.config';
 
 export const AppDataSource = new DataSource(getTypeOrmConfig());

@@ -1,30 +1,22 @@
-version: '3.8'
-
-# =============================================================================
-# All values read from .env  (copy .env.example → .env to start)
-# Remove services you don't need per project
-# =============================================================================
-
 services:
 
   # ---------------------------------------------------------------------------
   # MySQL — remove if using Postgres or another DB
+  # Uses host network to avoid iptables bridge issues on Linux
   # ---------------------------------------------------------------------------
   mysql:
     image: mysql:8.0
     container_name: ${COMPOSE_PROJECT_NAME:-app}_mysql
     restart: unless-stopped
+    network_mode: host
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASS}
-      MYSQL_DATABASE: ${DB_NAME}
-    ports:
-      - "${DB_PORT:-3306}:3306"
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password}
+      MYSQL_DATABASE: ${DB_NAME:-myapp}
+      MYSQL_TCP_PORT: ${DB_PORT:-3306}
     volumes:
       - mysql-data:/var/lib/mysql
-    networks:
-      - app-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASS}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_PASS:-password}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,14 +28,12 @@ services:
     image: redis:7-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-app}_redis
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    network_mode: host
+    command: redis-server --port ${REDIS_PORT:-6379}
     volumes:
       - redis-data:/data
-    networks:
-      - app-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT:-6379}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -55,16 +45,14 @@ services:
     image: prom/prometheus:latest
     container_name: ${COMPOSE_PROJECT_NAME:-app}_prometheus
     restart: unless-stopped
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+    network_mode: host
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.listen-address=:${PROMETHEUS_PORT:-9090}'
       - '--web.enable-remote-write-receiver'
       - '--storage.tsdb.retention.time=7d'
-    networks:
-      - app-net
 
   # ---------------------------------------------------------------------------
   # Grafana — auto-provisioned, no manual setup
@@ -74,9 +62,9 @@ services:
     image: grafana/grafana:latest
     container_name: ${COMPOSE_PROJECT_NAME:-app}_grafana
     restart: unless-stopped
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+    network_mode: host
     environment:
+      GF_SERVER_HTTP_PORT: ${GRAFANA_PORT:-3000}
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
@@ -84,17 +72,10 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    networks:
-      - app-net
     depends_on:
       - prometheus
 
-# =============================================================================
 volumes:
   mysql-data:
   redis-data:
   grafana-data:
-
-networks:
-  app-net:
-    driver: bridge

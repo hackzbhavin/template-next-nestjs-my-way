@@ -9,6 +9,7 @@ import { getRedisConfig } from './config/redis.config.js';
 import { getTypeOrmConfig } from './config/typeorm.config.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { RedisModule } from './shared/redis.module.js';
+import { MetricsModule } from './shared/metrics/metrics.module.js';
 import { ResponseTimeMiddleware } from './shared/middleware/response-time.middleware.js';
 
 @Module({
@@ -24,7 +25,8 @@ import { ResponseTimeMiddleware } from './shared/middleware/response-time.middle
         connection: getRedisConfig(config),
       }),
     }),
-    RedisModule,   // global — injects Redis client anywhere via @InjectRedis()
+    RedisModule,
+    MetricsModule,
     UsersModule,   // example module — replace or add your own modules here
   ],
   controllers: [AppController],

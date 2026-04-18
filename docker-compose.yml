@@ -2,7 +2,6 @@ services:
 
   # ---------------------------------------------------------------------------
   # MySQL — remove if using Postgres or another DB
-  # Uses host network to avoid iptables bridge issues on Linux
   # ---------------------------------------------------------------------------
   mysql:
     image: mysql:8.0
@@ -39,7 +38,53 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # Prometheus — scrapes NestJS /metrics + receives k6 remote write
+  # NestJS backend — 2GB memory limit for load testing visibility
+  # ---------------------------------------------------------------------------
+  backend:
+    build: ./backend
+    container_name: ${COMPOSE_PROJECT_NAME:-app}_backend
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PORT: ${PORT:-9002}
+      NODE_ENV: production
+      DB_HOST: ${DB_HOST:-localhost}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASS: ${DB_PASS:-password}
+      DB_NAME: ${DB_NAME:-myapp}
+      REDIS_HOST: ${REDIS_HOST:-localhost}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  # ---------------------------------------------------------------------------
+  # cAdvisor — container CPU / memory metrics for Prometheus
+  # ---------------------------------------------------------------------------
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-app}_cadvisor
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — scrapes /metrics + receives k6 remote write
   # ---------------------------------------------------------------------------
   prometheus:
     image: prom/prometheus:latest
@@ -55,8 +100,8 @@ services:
       - '--storage.tsdb.retention.time=7d'
 
   # ---------------------------------------------------------------------------
-  # Grafana — auto-provisioned, no manual setup
-  # Open: http://localhost:3000   login: admin / admin
+  # Grafana — auto-provisioned, zero manual setup
+  # Open: http://localhost:3000  login: admin / admin
   # ---------------------------------------------------------------------------
   grafana:
     image: grafana/grafana:latest

@@ -18,7 +18,7 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['/metrics'] });
 
   await app.listen(process.env.PORT ?? 9002);
   console.log(`Server running on http://localhost:${process.env.PORT ?? 9002}/api/v1`);
